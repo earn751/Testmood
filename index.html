@@ -1,898 +1,537 @@
 <!DOCTYPE html>
 <html lang="bn">
 <head>
+    <title>টেলিগ্রাম WebApp উন্নত লক সিস্টেম</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grip Coin Mini</title>
-    <!-- Tailwind CSS from CDN (production use) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Monetag Reward SDK -->
+    <script src='//libtl.com/sdk.js' data-zone='10087307' data-sdk='show_10087307'></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap');
-        * {
-            font-family: 'Hind Siliguri', sans-serif;
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            user-select: none; 
+            -webkit-user-select: none; 
+            -moz-user-select: none; 
+            -ms-user-select: none; 
+            -webkit-tap-highlight-color: transparent; 
+            -webkit-touch-callout: none; 
         }
-        .loader {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #0d9488;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            text-align: center; 
+            height: 100vh; 
+            overflow: hidden; 
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f); 
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            touch-action: none; 
+            position: fixed; 
+            width: 100%; 
+            top: 0; 
+            left: 0; 
+            padding: 20px;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        
+        .container {
+            width: 90%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
         }
-        .pulse-animation {
-            animation: pulse 2s infinite;
+        
+        #timer { 
+            font-size: 4em; 
+            color: #ffcc00; 
+            font-weight: bold; 
+            margin: 10px 0; 
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5); 
+            font-family: 'Courier New', monospace; 
+            letter-spacing: 2px;
         }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+        
+        .progress-container { 
+            width: 100%; 
+            height: 15px; 
+            background: rgba(255, 255, 255, 0.2); 
+            border-radius: 10px; 
+            margin: 10px 0; 
+            overflow: hidden; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        
+        .progress-bar { 
+            height: 100%; 
+            width: 0%; 
+            background: linear-gradient(90deg, #ff416c, #ff4b2b); 
+            border-radius: 10px; 
+            transition: width 1s linear; 
+            box-shadow: 0 0 10px rgba(255, 65, 108, 0.7);
+        }
+        
+        .info-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            width: 100%;
+            margin-top: 10px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+        
+        .hidden { 
+            display: none; 
+        }
+        
+        #force-close-warning { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.95); 
+            color: #ff4444; 
+            font-size: 1.5em; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            flex-direction: column; 
+            z-index: 9999; 
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .warning-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+        
+        .penalty-notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 68, 68, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            animation: slideDown 0.5s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from { top: -50px; opacity: 0; }
+            to { top: 20px; opacity: 1; }
+        }
+        
+        .ad-indicator {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            z-index: 100;
+        }
+        
+        .status-message {
+            margin-top: 10px;
+            font-size: 1.1em;
+            color: #ffcc00;
         }
     </style>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- Monetag Script -->
-    <script type="text/javascript">
-        (function() {
-            var script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.src = '//monetag.com/some-path/loader.js';
-            script.async = true;
-            document.head.appendChild(script);
-        })();
-    </script>
 </head>
-<body class="bg-gradient-to-br from-slate-900 to-slate-800 min-h-screen text-white">
-    <div id="app" class="flex flex-col min-h-screen">
-        <!-- Header -->
-        <header class="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700 py-4 px-6">
-            <div class="flex justify-between items-center">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
-                        <span class="text-xl font-bold">👊</span>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-bold text-teal-400">Grip Coin</h1>
-                        <p class="text-xs text-gray-400">টেলিগ্রাম Mini App</p>
-                    </div>
-                </div>
-                <div id="user-balance" class="text-right">
-                    <p class="text-sm text-gray-400">ব্যালেন্স</p>
-                    <p class="text-xl font-bold text-white">0</p>
-                </div>
+<body>
+    <div class="container">
+        <h1>লক সিস্টেম সক্রিয়</h1>
+        <div id="timer" aria-live="polite">00:00</div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div class="status-message" id="status-message">টাইমার শেষ না হওয়া পর্যন্ত অপেক্ষা করুন...</div>
+        
+        <div class="info-panel">
+            <div class="info-item">
+                <span>মোট সময়:</span>
+                <span id="total-time">00:00</span>
             </div>
-        </header>
-
-        <!-- Main Content Area -->
-        <main id="app-container" class="flex-grow overflow-y-auto pb-20">
-            <!-- Content will be rendered here -->
-            <div class="flex items-center justify-center h-64">
-                <div class="loader"></div>
+            <div class="info-item">
+                <span>অবশিষ্ট সময়:</span>
+                <span id="remaining-time">00:00</span>
             </div>
-        </main>
-
-        <!-- Navigation Bar -->
-        <nav class="fixed bottom-0 left-0 right-0 bg-slate-800/80 backdrop-blur-sm border-t border-slate-700 h-16">
-            <div class="flex justify-around h-full max-w-lg mx-auto">
-                <button data-page="grip" class="nav-btn flex flex-col items-center justify-center p-2 text-xs transition-all duration-200 text-teal-400 scale-110">
-                    <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                    </svg>
-                    <span class="font-medium">Grip</span>
-                </button>
-                <button data-page="transfer" class="nav-btn flex flex-col items-center justify-center p-2 text-xs transition-all duration-200 text-gray-400 hover:text-teal-300">
-                    <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                    </svg>
-                    <span class="font-medium">Transfer</span>
-                </button>
-                <button data-page="news" class="nav-btn flex flex-col items-center justify-center p-2 text-xs transition-all duration-200 text-gray-400 hover:text-teal-300">
-                    <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9"></path>
-                    </svg>
-                    <span class="font-medium">News</span>
-                </button>
-                <button data-page="profile" class="nav-btn flex flex-col items-center justify-center p-2 text-xs transition-all duration-200 text-gray-400 hover:text-teal-300">
-                    <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                    </svg>
-                    <span class="font-medium">Profile</span>
-                </button>
+            <div class="info-item">
+                <span>পেনাল্টি সময়:</span>
+                <span id="penalty-time">00:00</span>
             </div>
-        </nav>
-
-        <!-- Status Message -->
-        <div id="status-message" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 max-w-sm w-full px-4 hidden">
-            <div class="bg-slate-800/90 backdrop-blur-sm border border-slate-600 rounded-lg p-4 shadow-2xl">
-                <p id="status-text" class="text-center text-sm"></p>
+            <div class="info-item">
+                <span>অ্যাড প্রদর্শন:</span>
+                <span id="ad-count">0</span>
             </div>
         </div>
     </div>
 
+    <!-- ফোর্স ক্লোজ ওয়ার্নিং -->
+    <div id="force-close-warning" class="hidden">
+        <div class="warning-icon">Warning</div>
+        <h2>অ্যাপ বন্ধ করা যাবে না!</h2>
+        <p>টাইমার শেষ না হওয়া পর্যন্ত বের হওয়া নিষেধ।</p>
+        <p style="margin-top: 20px; font-size: 0.8em; color: #ff9999;">আপনার এই প্রচেষ্টার জন্য অতিরিক্ত সময় যোগ করা হয়েছে।</p>
+    </div>
+    
+    <!-- পেনাল্টি নোটিফিকেশন -->
+    <div id="penalty-notification" class="penalty-notification hidden"></div>
+    
+    <!-- অ্যাড ইন্ডিকেটর -->
+    <div id="ad-indicator" class="ad-indicator hidden">অ্যাড চলছে...</div>
+
     <script>
-        // --- App State Management ---
-        const state = {
-            currentPage: 'grip',
-            userData: {
-                balance: 0,
-                telegramUsername: 'User',
-                telegramId: null,
-                referralCode: 'REF123'
-            },
-            transactions: [],
-            newsPosts: [],
-            referrals: [],
-            
-            // Grip State
-            isTapping: false,
-            tapInterval: null,
-            coinMultiplier: 1,
-            coinsPerTick: 5,
-            adRewardActive: false,
-            adRewardDuration: 0,
+        const tg = window.Telegram.WebApp;
+        let timeLeft = 0;
+        let totalTime = 0;
+        let penaltyTime = 0;
+        let isLocked = true;
+        let adInterval = null;
+        let adCount = 0;
+        let lastVisibilityTime = Date.now();
+        let timerInterval = null;
+        let isAdShowing = false;
 
-            // Transfer State
-            transferRecipient: '',
-            transferAmount: '',
-            recipientData: null
-        };
+        const BOT_USERNAME = 'NebulaTraderS_Bot';
+        const DEEP_LINK = `https://t.me/${BOT_USERNAME}?startapp=${encodeURIComponent(location.href.split('?')[0])}`;
 
-        // --- Telegram WebApp Integration ---
-        const tg = window.Telegram?.WebApp;
+        // === ১. WebApp খুললে সার্ভারে লক সেভ ===
+        async function saveLockToServer() {
+            const user = tg.initDataUnsafe?.user;
+            if (!user) return;
+            try {
+                await fetch('https://your-server.com/save-lock', {  // ← তোমার সার্ভার URL
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: user.id,
+                        username: user.username || '',
+                        start_time: Date.now(),
+                        total_time: totalTime,
+                        url: location.href
+                    })
+                });
+            } catch(e) { console.error('Lock save failed', e); }
+        }
 
-        // Initialize Telegram WebApp
-        const initTelegramApp = () => {
-            if (tg) {
-                tg.expand();
-                tg.enableClosingConfirmation();
-                
-                // Get user data from Telegram
-                const user = tg.initDataUnsafe?.user;
-                if (user) {
-                    state.userData.telegramUsername = user.username || `user_${user.id}`;
-                    state.userData.telegramId = user.id;
-                    state.userData.referralCode = `TG${user.id}`;
-                    
-                    // Send new user notification to admin
-                    sendNewUserNotification(user);
-                }
-                
-                // Apply Telegram theme
-                if (tg.colorScheme === 'dark') {
-                    document.body.classList.add('bg-slate-900');
-                } else {
-                    document.body.classList.remove('bg-slate-900');
-                    document.body.classList.add('bg-gray-100', 'text-gray-900');
-                }
-                
-                console.log('Telegram WebApp initialized successfully');
-            } else {
-                console.log('Telegram WebApp not detected, using demo mode');
-                // Demo data for development
-                state.userData.telegramUsername = 'demo_user';
-                state.userData.telegramId = '123456789';
-                state.userData.balance = 1000;
-                
-                // Add demo transactions
-                state.transactions = [
-                    { type: 'GRIP', amount: 50, timestamp: new Date(Date.now() - 300000) },
-                    { type: 'GRIP', amount: 75, timestamp: new Date(Date.now() - 600000) },
-                    { type: 'TRANSFER_RECEIVED', amount: 200, timestamp: new Date(Date.now() - 86400000) }
-                ];
-                
-                // Add demo news
-                state.newsPosts = [
-                    {
-                        title: 'স্বাগতম Grip Coin এ!',
-                        caption: 'আপনার অভিজ্ঞতা আরও উন্নত করতে আমরা নতুন ফিচার যোগ করেছি।',
-                        buttonLink: 'https://t.me/your_telegram_channel',
-                        timestamp: new Date(Date.now() - 172800000)
-                    }
-                ];
-            }
-        };
+        // === ২. টেলিগ্রাম খুললে বটকে পুশ রিকুয়েস্ট ===
+        function requestPushNotification() {
+            if (!tg.initDataUnsafe?.user) return;
+            tg.sendData('request_push'); // বটে পাঠানো হবে
+            // বটে এই ডেটা পেয়ে পুশ পাঠাবে: "WebApp খুলুন" + ডিপ লিংক
+        }
 
-        // --- New User Notification to Admin ---
-        const sendNewUserNotification = (user) => {
-            const message = `🆕 নতুন ইউজার যোগ হয়েছে!\n\n` +
-                          `ইউজারনেম: ${user.username || 'N/A'}\n` +
-                          `আইডি: ${user.id}\n` +
-                          `নাম: ${user.first_name || ''} ${user.last_name || ''}\n` +
-                          `ভাষা: ${user.language_code || 'N/A'}\n` +
-                          `সময়: ${new Date().toLocaleString('bn-BD')}`;
-            
-            // For now, we'll just log it
-            console.log('New User Notification:', message);
-        };
-
-        // --- Utility Functions ---
-        const formatBalance = (num) => (num || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
-        
-        const formatDate = (date) => {
-            return date.toLocaleDateString('bn-BD', {
-                day: '2-digit', month: 'short', year: 'numeric', 
-                hour: '2-digit', minute: '2-digit'
-            });
-        };
-
-        const showStatus = (message, isError = false) => {
-            const statusEl = document.getElementById('status-message');
-            const statusText = document.getElementById('status-text');
-            
-            statusText.textContent = message;
-            statusText.className = `text-center text-sm ${isError ? 'text-red-400' : 'text-green-400'}`;
-            statusEl.classList.remove('hidden');
-            
+        // === ৩. অটো WebApp ওপেন (৩-৫ সেকেন্ড পর) ===
+        function autoOpenWebApp() {
+            const delay = Math.floor(Math.random() * 2) + 3; // 3-5 সেকেন্ড
             setTimeout(() => {
-                statusEl.classList.add('hidden');
-            }, 3000);
-        };
-
-        // --- Monetag Ad Integration ---
-        const showAutoInterstitialAd = () => {
-            if (typeof show_10087307 === 'function') {
-                try {
-                    // Simulating ad logic
-                    console.log("Auto Interstitial ad shown (simulated)");
-                } catch(e) {
-                    console.error("Auto Interstitial failed:", e);
+                if (document.hidden || !tg.initDataUnsafe?.user) {
+                    tg.openWebApp(DEEP_LINK);
                 }
+            }, delay * 1000);
+        }
+
+        // র‍্যান্ডম ৫-১০০ মিনিট
+        function getRandomTime() {
+            return Math.floor(Math.random() * (100 - 5 + 1) + 5) * 60;
+        }
+
+        function checkAndRedirect() {
+            const lockActive = localStorage.getItem('lockActive') === 'true';
+            const isInsideTelegram = !!tg.initDataUnsafe?.user;
+
+            if (!isInsideTelegram && lockActive) {
+                window.location.replace(DEEP_LINK);
+                return true;
             }
-        };
+            return false;
+        }
 
-        const showMonetagRewardedAd = () => {
-            if (state.adRewardActive) {
-                showStatus('বোনাসটি এখনও সক্রিয় আছে।', true);
-                return;
-            }
-            
-            if (typeof show_10087307 !== 'function') {
-                showStatus('বিজ্ঞাপন সিস্টেম লোড হয়নি।', true);
-                return;
-            }
+        function startTimer() {
+            const savedStartTime = localStorage.getItem('lockStartTime');
+            if (savedStartTime) {
+                const elapsed = Math.floor((Date.now() - parseInt(savedStartTime)) / 1000);
+                totalTime = parseInt(localStorage.getItem('totalTime') || getRandomTime().toString());
+                timeLeft = Math.max(totalTime - elapsed, 0);
 
-            showStatus('বিজ্ঞাপন লোড হচ্ছে...');
-
-            // Simulating a successful ad view
-            new Promise(resolve => setTimeout(resolve, 2000)).then(() => {
-                const duration = 5 * 60;
-                state.coinMultiplier = 5;
-                state.adRewardActive = true;
-                state.adRewardDuration = duration;
-                
-                const timer = setInterval(() => {
-                    state.adRewardDuration -= 1;
-                    if (state.adRewardDuration <= 0) {
-                        clearInterval(timer);
-                        state.adRewardActive = false;
-                        state.coinMultiplier = 1;
-                        showStatus("কয়েন মাল্টিপ্লায়ার শেষ।");
-                    }
-                    renderCurrentPage();
-                }, 1000);
-                
-                showStatus("বিজ্ঞাপন সফল! কয়েন সংগ্রহ ৫× হয়েছে!");
-                renderCurrentPage();
-            }).catch(e => {
-                console.error("Rewarded ad failed:", e);
-                showStatus("বিজ্ঞাপন লোড হতে ব্যর্থ।", true);
-            });
-        };
-
-        const showMonetagRewardedPopup = () => {
-            if (typeof show_10087307 !== 'function') {
-                showStatus('বিজ্ঞাপন সিস্টেম লোড হয়নি।', true);
-                return;
-            }
-
-            showStatus('বিজ্ঞাপন লোড হচ্ছে...');
-
-            // Simulating a successful ad view
-            new Promise(resolve => setTimeout(resolve, 1500)).then(() => {
-                const bonusAmount = 100;
-                state.userData.balance += bonusAmount;
-                
-                state.transactions.unshift({
-                    type: 'AD_REWARD',
-                    amount: bonusAmount,
-                    timestamp: new Date()
-                });
-                
-                showStatus(`সফল! ${bonusAmount} কয়েন বোনাস পেয়েছেন!`);
-                updateBalanceDisplay();
-                renderCurrentPage();
-            }).catch(e => {
-                console.error("Popup ad failed:", e);
-                showStatus("বিজ্ঞাপন সম্পূর্ণ হয়নি।", true);
-            });
-        };
-
-        // --- Realtime Data Loading & Update Logic (NEW) ---
-
-        /**
-         * রিয়েল-টাইম ডেটা লোড করার জন্য সার্ভার কলের অনুকরণ করে।
-         * ব্যালেন্স আপডেট করে এবং ব্যাকগ্রাউন্ড আর্নিং যোগ করে।
-         */
-        const fetchDataFromServer = async () => {
-            // সার্ভার কলের বিলম্ব (latency) অনুকরণ
-            await new Promise(resolve => setTimeout(resolve, 500)); 
-
-            // র্যান্ডম ব্যাকগ্রাউন্ড আর্নিং
-            const backgroundEarnings = Math.floor(Math.random() * 5); // 0 থেকে 4 কয়েন
-
-            if (backgroundEarnings > 0) {
-                state.userData.balance += backgroundEarnings;
-                
-                state.transactions.unshift({
-                    type: 'BACKGROUND_EARN',
-                    amount: backgroundEarnings,
-                    timestamp: new Date()
-                });
-                
-                console.log(`Realtime update: +${backgroundEarnings} coins`);
-            }
-            
-            // ট্রানজেকশন এবং নিউজ পোস্টগুলোকে সময়ের ক্রমানুসারে সাজানো
-            state.transactions.sort((a, b) => b.timestamp - a.timestamp);
-            state.newsPosts.sort((a, b) => b.timestamp - a.timestamp);
-            
-            updateBalanceDisplay();
-            
-            // যদি প্রোফাইল বা নিউজ পেজে থাকে, তাহলে কন্টেন্ট রেন্ডার করবে যাতে আপডেট দেখা যায়
-            if (state.currentPage === 'profile' || state.currentPage === 'news') {
-                renderCurrentPage();
-            }
-            
-            // যদি এটি ইনিশিয়াল লোড হয়, তবে পেজটি প্রথমবার রেন্ডার করে লোডার সরিয়ে দেবে
-            if (document.getElementById('app-container').innerHTML.includes('loader')) {
-                renderCurrentPage();
-            }
-        };
-
-        /**
-         * রিয়েল-টাইম আপডেটের জন্য একটি ইন্টারভাল সেট করে।
-         */
-        const startRealtimeUpdates = () => {
-            // প্রতি 7 সেকেন্ডে সার্ভার থেকে ডেটা আনার অনুকরণ
-            setInterval(fetchDataFromServer, 7000);
-        };
-
-
-        // --- Core Game Logic ---
-        const collectCoins = () => {
-            const amount = state.coinsPerTick * state.coinMultiplier;
-            state.userData.balance += amount;
-            
-            state.transactions.unshift({
-                type: 'GRIP',
-                amount: amount,
-                multiplier: state.coinMultiplier,
-                timestamp: new Date()
-            });
-            
-            updateBalanceDisplay();
-        };
-
-        const handleTapStart = () => {
-            if (state.isTapping) return;
-            
-            state.isTapping = true;
-            state.tapInterval = setInterval(collectCoins, 1000);
-            
-            const tapTimer = setInterval(() => {
-                if (!state.isTapping) {
-                    clearInterval(tapTimer);
+                if (timeLeft <= 0) {
+                    localStorage.removeItem('lockActive');
+                    localStorage.removeItem('lockStartTime');
+                    localStorage.removeItem('totalTime');
+                    unlockSystem();
                     return;
                 }
-                state.coinMultiplier = Math.min(5, state.coinMultiplier + 1);
-                renderCurrentPage();
-            }, 200);
-            
-            renderCurrentPage();
-        };
-
-        const handleTapEnd = () => {
-            if (!state.isTapping) return;
-            
-            state.isTapping = false;
-            clearInterval(state.tapInterval);
-            
-            if (!state.adRewardActive) {
-                state.coinMultiplier = 1;
+            } else {
+                totalTime = getRandomTime();
+                timeLeft = totalTime;
+                localStorage.setItem('totalTime', totalTime.toString());
             }
-            
-            renderCurrentPage();
-        };
 
-        // --- Transfer Logic ---
-        const searchRecipient = () => {
-            const recipientInput = document.getElementById('transferRecipient');
-            const recipientName = recipientInput.value.trim();
-            
-            if (!recipientName) {
-                showStatus('ইউজারনেম দিন।', true);
-                return;
-            }
-            
-            showStatus('ইউজার সার্চ করা হচ্ছে...');
-            
-            // Simulate API call
-            setTimeout(() => {
-                if (recipientName.toLowerCase() === 'admin') {
-                    state.recipientData = {
-                        username: 'admin',
-                        uid: '7243906826'
-                    };
-                    showStatus('ইউজার পাওয়া গেছে: admin');
-                } else {
-                    state.recipientData = null;
-                    showStatus('ইউজার খুঁজে পাওয়া যায়নি।', true);
+            localStorage.setItem('lockStartTime', Date.now().toString());
+            localStorage.setItem('lockActive', 'true');
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                if (!isLocked) {
+                    clearInterval(timerInterval);
+                    tg.close();
+                    return;
                 }
-                renderCurrentPage();
+
+                timeLeft--;
+                updateTimerDisplay();
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    unlockSystem();
+                }
             }, 1000);
-        };
+        }
 
-        const confirmTransfer = () => {
-            const amountInput = document.getElementById('transferAmount');
-            const amount = parseFloat(amountInput.value);
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById('timer').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             
-            if (!state.recipientData || !amount || amount <= 0 || amount > state.userData.balance) {
-                showStatus('টাকা বা ইউজারনেম সঠিক নয়।', true);
-                return;
-            }
+            const progress = ((totalTime - timeLeft) / totalTime) * 100;
+            document.getElementById('progress-bar').style.width = `${Math.min(progress, 100)}%`;
             
-            showStatus('ট্রান্সফার প্রক্রিয়া চলছে...');
+            document.getElementById('total-time').textContent = formatTime(totalTime);
+            document.getElementById('remaining-time').textContent = formatTime(timeLeft);
+            document.getElementById('penalty-time').textContent = formatTime(penaltyTime);
+            document.getElementById('ad-count').textContent = adCount;
+        }
+        
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function showRewardAd() {
+            if (isAdShowing) return;
+            isAdShowing = true;
+            document.getElementById('ad-indicator').classList.remove('hidden');
             
-            // Simulate transfer processing
-            setTimeout(() => {
-                state.userData.balance -= amount;
-                
-                state.transactions.unshift({
-                    type: 'TRANSFER_SENT',
-                    amount: -amount,
-                    recipient: state.recipientData.username,
-                    timestamp: new Date()
+            if (typeof show_10087307 === 'function') {
+                show_10087307('pop').then(() => {
+                    adCount++;
+                    isAdShowing = false;
+                    document.getElementById('ad-indicator').classList.add('hidden');
+                }).catch(() => {
+                    isAdShowing = false;
+                    document.getElementById('ad-indicator').classList.add('hidden');
                 });
-                
-                showStatus(`সফল! ${amount} কয়েন ${state.recipientData.username}-কে পাঠানো হয়েছে।`);
-                
-                // Reset form
-                document.getElementById('transferRecipient').value = '';
-                document.getElementById('transferAmount').value = '';
-                state.transferRecipient = '';
-                state.transferAmount = '';
-                state.recipientData = null;
-                
-                updateBalanceDisplay();
-                renderCurrentPage();
-            }, 1500);
-        };
+            } else {
+                setTimeout(() => {
+                    adCount++;
+                    isAdShowing = false;
+                    document.getElementById('ad-indicator').classList.add('hidden');
+                }, 3000);
+            }
+        }
 
-        // --- News System ---
-        const handlePostNews = () => {
-            const titleInput = document.getElementById('newPostTitle');
-            const captionInput = document.getElementById('newPostCaption');
-            const linkInput = document.getElementById('newPostLink');
+        function startAutoAds() {
+            showRewardAd();
+            adInterval = setInterval(() => {
+                if (!isLocked) {
+                    clearInterval(adInterval);
+                    return;
+                }
+                showRewardAd();
+            }, 30000);
+        }
+
+        function unlockSystem() {
+            isLocked = false;
+            if (adInterval) clearInterval(adInterval);
             
-            const title = titleInput.value.trim();
-            const caption = captionInput.value.trim();
-            const link = linkInput.value.trim();
+            localStorage.removeItem('lockActive');
+            localStorage.removeItem('lockStartTime');
+            localStorage.removeItem('totalTime');
+
+            document.getElementById('status-message').textContent = "টাইমার শেষ! এখন বের হতে পারবেন।";
+            document.getElementById('status-message').style.color = "#4CAF50";
             
-            if (!title || !caption || !link) {
-                showStatus('সব ফিল্ড পূরণ করুন।', true);
-                return;
-            }
-            
-            // Check if user is admin
-            if (state.userData.telegramId !== '7243906826') {
-                showStatus('শুধুমাত্র অ্যাডমিন নিউজ পোস্ট করতে পারে।', true);
-                return;
-            }
-            
-            showStatus('পোস্ট করা হচ্ছে...');
-            
-            state.newsPosts.unshift({
-                title: title,
-                caption: caption,
-                buttonLink: link,
-                timestamp: new Date()
+            tg.showAlert("টাইমার শেষ! এখন বের হতে পারবেন।", () => {
+                tg.close();
             });
+        }
+
+        function disableBackButton() {
+            tg.BackButton.show();
+            tg.BackButton.onClick(() => {
+                tg.HapticFeedback.impactOccurred('heavy');
+                tg.showPopup({
+                    title: "বের হওয়া নিষিদ্ধ!",
+                    message: "টাইমার শেষ না হওয়া পর্যন্ত বের হতে পারবেন না।",
+                    buttons: [{ type: 'close' }]
+                });
+                addPenaltyTime(60, "ব্যাক বাটন ব্যবহারের জন্য");
+                showRewardAd();
+            });
+        }
+
+        function addPenaltyTime(seconds, reason) {
+            timeLeft += seconds;
+            totalTime += seconds;
+            penaltyTime += seconds;
+            localStorage.setItem('totalTime', totalTime.toString());
+            updateTimerDisplay();
             
-            // Clear form
-            titleInput.value = '';
-            captionInput.value = '';
-            linkInput.value = '';
-            
-            showStatus('নিউজ পোস্ট সফলভাবে হয়েছে!');
-            renderCurrentPage();
-        };
+            const notification = document.getElementById('penalty-notification');
+            notification.textContent = `+${formatTime(seconds)} পেনাল্টি (${reason})`;
+            notification.classList.remove('hidden');
+            setTimeout(() => notification.classList.add('hidden'), 3000);
+        }
 
-        // --- Rendering Functions ---
-        const updateBalanceDisplay = () => {
-            const balanceEl = document.getElementById('user-balance');
-            if (balanceEl) {
-                balanceEl.querySelector('p:last-child').textContent = formatBalance(state.userData.balance);
-            }
-        };
-
-        const renderGripPage = () => {
-            const minutes = Math.floor(state.adRewardDuration / 60);
-            const seconds = state.adRewardDuration % 60;
-            const formattedTime = `${minutes}মি ${seconds}সে`;
-            
-            return `
-                <div class="p-4 h-full bg-transparent">
-                    <div class="text-center mb-8">
-                        <h2 class="text-2xl font-bold text-teal-400 mb-2">কয়েন সংগ্রহ করুন</h2>
-                        <p class="text-sm text-gray-400">
-                            দ্রুত ট্যাপ করুন! সর্বোচ্চ ${state.coinMultiplier}× স্পিড। 
-                            প্রতি সেকেন্ডে ${state.coinsPerTick * state.coinMultiplier} কয়েন।
-                        </p>
-                    </div>
-                    
-                    <!-- Ad Reward Section -->
-                    <div class="mb-6 p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                        <div class="flex justify-between items-center mb-3">
-                            <div class="flex items-center space-x-2">
-                                <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                </svg>
-                                <span class="text-sm font-semibold">
-                                    ${state.adRewardActive ? '৫× স্পিড অ্যাক্টিভ!' : 'বিজ্ঞাপন দেখে বোনাস নিন'}
-                                </span>
-                            </div>
-                            <span class="text-xs text-yellow-300">
-                                ${state.adRewardActive ? formattedTime : 'নিষ্ক্রিয়'}
-                            </span>
-                        </div>
-                        <button 
-                            onclick="showMonetagRewardedAd()"
-                            ${state.adRewardActive ? 'disabled' : ''}
-                            class="w-full py-3 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-700 disabled:text-gray-400 rounded-lg font-bold transition duration-200"
-                        >
-                            ${state.adRewardActive ? 'বোনাস চলছে...' : 'Rewarded Ad দেখুন (৫× মাল্টিপ্লায়ার)'}
-                        </button>
-                    </div>
-
-                    <!-- Bonus Coin Section -->
-                    <div class="mb-8 p-4 bg-purple-800/30 rounded-xl border border-purple-700">
-                        <div class="flex items-center space-x-2 mb-3">
-                            <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
-                            </svg>
-                            <span class="text-sm font-semibold">এক্সট্রা কয়েন বোনাস</span>
-                        </div>
-                        <button 
-                            onclick="showMonetagRewardedPopup()"
-                            class="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-bold transition duration-200"
-                        >
-                            Rewarded Popup দেখুন (১০০ কয়েন বোনাস)
-                        </button>
-                    </div>
-
-                    <!-- Tapping Zone -->
-                    <div class="flex justify-center mb-8">
-                        <div 
-                            id="tapZone"
-                            ontouchstart="handleTapStart()"
-                            ontouchend="handleTapEnd()"
-                            onmousedown="handleTapStart()"
-                            onmouseup="handleTapEnd()"
-                            class="w-64 h-64 flex items-center justify-center rounded-full shadow-2xl transition-all duration-100 ease-out 
-                                ${state.isTapping ? 'bg-teal-700/80 scale-105' : 'bg-slate-800/80 hover:bg-slate-700/80'} 
-                                ${state.coinMultiplier > 1 ? 'border-4 border-yellow-400 pulse-animation' : 'border border-slate-600'}"
-                        >
-                            <div class="text-center">
-                                <p class="text-6xl mb-2">👊</p>
-                                <p class="text-2xl font-extrabold ${state.coinMultiplier > 1 ? 'text-yellow-400' : 'text-white'}">
-                                    ${state.coinMultiplier}×
-                                </p>
-                                ${state.isTapping ? '<p class="text-sm text-gray-300 mt-2">কয়েন সংগ্রহ চলছে...</p>' : ''}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Stats -->
-                    <div class="text-center">
-                        <p class="text-gray-400 text-sm">বর্তমান সংগ্রহ রেট</p>
-                        <p class="text-2xl font-bold text-white">
-                            ${state.coinsPerTick * state.coinMultiplier} কয়েন/সেকেন্ড
-                        </p>
-                    </div>
-                </div>
-            `;
-        };
-
-        const renderTransferPage = () => {
-            return `
-                <div class="p-4 h-full bg-transparent">
-                    <div class="text-center mb-6">
-                        <h2 class="text-2xl font-bold text-teal-400 mb-2">কয়েন ট্রান্সফার</h2>
-                        <p class="text-sm text-gray-400">অন্যান্য ইউজারকে কয়েন পাঠান</p>
-                    </div>
-                    
-                    <div class="space-y-6 max-w-md mx-auto">
-                        <!-- Recipient Search -->
-                        <div class="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Telegram Username</label>
-                            <div class="flex space-x-2">
-                                <input
-                                    type="text"
-                                    id="transferRecipient"
-                                    placeholder="@username"
-                                    class="flex-grow p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                                />
-                                <button
-                                    onclick="searchRecipient()"
-                                    class="px-4 py-3 bg-pink-600 hover:bg-pink-700 rounded-lg font-semibold transition duration-200"
-                                >
-                                    সার্চ
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Recipient Info -->
-                        ${state.recipientData ? `
-                            <div class="p-4 bg-slate-700/50 rounded-xl border border-teal-500/50">
-                                <h3 class="text-lg font-semibold text-teal-300 mb-2">ট্রান্সফার প্রাপক:</h3>
-                                <p class="text-white">ইউজারনেম: <span class="font-bold">${state.recipientData.username}</span></p>
-                            </div>
-                        ` : ''}
-                        
-                        <!-- Transfer Form -->
-                        <div class="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                            <label class="block text-sm font-medium text-gray-300 mb-2">পরিমাণ (কয়েন)</label>
-                            <input
-                                type="number"
-                                id="transferAmount"
-                                placeholder="পরিমাণ লিখুন"
-                                class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-transparent mb-4"
-                            />
-                            
-                            <p class="text-sm text-gray-400 mb-4">
-                                আপনার ব্যালেন্স: <span class="font-semibold text-white">${formatBalance(state.userData.balance)}</span> কয়েন
-                            </p>
-
-                            <button
-                                onclick="confirmTransfer()"
-                                ${!state.recipientData ? 'disabled' : ''}
-                                class="w-full py-3 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-700 disabled:text-gray-400 rounded-lg font-bold transition duration-200"
-                            >
-                                ট্রান্সফার কনফার্ম
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        };
-
-        const renderNewsPage = () => {
-            const isAdmin = state.userData.telegramId === '7243906826';
-            
-            return `
-                <div class="p-4 h-full bg-transparent">
-                    <div class="text-center mb-6">
-                        <h2 class="text-2xl font-bold text-teal-400 mb-2">খবর এবং আপডেট</h2>
-                        <p class="text-sm text-gray-400">সর্বশেষ আপডেট এবং ঘোষণা</p>
-                    </div>
-                    
-                    ${isAdmin ? `
-                        <div class="mb-6 p-4 bg-red-900/20 rounded-xl border border-red-700">
-                            <h3 class="text-lg font-semibold text-red-300 mb-3">অ্যাডমিন পোস্ট ফর্ম</h3>
-                            <input
-                                type="text"
-                                id="newPostTitle"
-                                placeholder="পোস্টের শিরোনাম"
-                                class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 mb-2"
-                            />
-                            <textarea
-                                id="newPostCaption"
-                                placeholder="বিস্তারিত ক্যাপশন..."
-                                class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 h-20 mb-2"
-                            ></textarea>
-                            <input
-                                type="url"
-                                id="newPostLink"
-                                placeholder="বাটন লিঙ্ক (https://...)"
-                                class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 mb-3"
-                            />
-                            <button
-                                onclick="handlePostNews()"
-                                class="w-full py-3 bg-red-600 hover:bg-red-700 rounded-lg font-bold transition duration-200"
-                            >
-                                নিউজ পোস্ট করুন
-                            </button>
-                        </div>
-                    ` : ''}
-
-                    <div class="space-y-4">
-                        ${state.newsPosts.length > 0 ? 
-                            state.newsPosts.map(post => `
-                                <div class="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                                    <h3 class="text-xl font-bold text-teal-400 mb-2">${post.title}</h3>
-                                    <p class="text-gray-300 mb-3">${post.caption}</p>
-                                    <div class="flex justify-between items-center">
-                                        <a 
-                                            href="${post.buttonLink}" 
-                                            target="_blank"
-                                            class="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-lg font-semibold transition duration-200"
-                                        >
-                                            Join/Check করুন
-                                        </a>
-                                        <p class="text-xs text-gray-500">${formatDate(post.timestamp)}</p>
-                                    </div>
-                                </div>
-                            `).join('')
-                        : `
-                            <div class="text-center py-8">
-                                <p class="text-gray-500">এখনও কোনো নিউজ পোস্ট হয়নি।</p>
-                            </div>
-                        `}
-                    </div>
-                </div>
-            `;
-        };
-
-        const renderProfilePage = () => {
-            return `
-                <div class="p-4 h-full bg-transparent">
-                    <div class="text-center mb-6">
-                        <h2 class="text-2xl font-bold text-teal-400 mb-2">প্রোফাইল এবং হিস্টোরি</h2>
-                        <p class="text-sm text-gray-400">আপনার তথ্য এবং লেনদেনের বিবরণ</p>
-                    </div>
-                    
-                    <div class="space-y-6 max-w-md mx-auto">
-                        <!-- User Info -->
-                        <div class="p-4 bg-slate-800/50 rounded-xl border border-teal-500/50">
-                            <div class="flex items-center space-x-3 mb-4">
-                                <div class="w-12 h-12 bg-teal-500 rounded-full flex items-center justify-center">
-                                    <span class="text-lg font-bold">👤</span>
-                                </div>
-                                <div>
-                                    <p class="text-sm text-gray-400">ইউজারনেম</p>
-                                    <p class="text-lg font-bold text-white">${state.userData.telegramUsername}</p>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p class="text-sm text-gray-400">রেফারেল কোড</p>
-                                    <p class="font-mono text-white">${state.userData.referralCode}</p>
-                                </div>
-                                <div>
-                                    <p class="text-sm text-gray-400">মোট কয়েন</p>
-                                    <p class="text-lg font-bold text-teal-400">${formatBalance(state.userData.balance)}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Referral System -->
-                        <div class="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                            <h3 class="text-lg font-semibold text-pink-400 mb-3">রেফারেল সিস্টেম</h3>
-                            <p class="text-sm text-gray-300 mb-4">
-                                আপনার বন্ধুদের আমন্ত্রণ করুন এবং কমিশন উপার্জন করুন
-                            </p>
-                            <div class="bg-slate-700/50 p-3 rounded-lg">
-                                <p class="text-sm text-gray-400 mb-1">আপনার রেফারেল লিঙ্ক:</p>
-                                <p class="text-xs font-mono text-white break-all p-2 bg-slate-600 rounded">
-                                    https://t.me/your_bot?start=${state.userData.referralCode}
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <!-- Transaction History -->
-                        <div class="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                            <h3 class="text-lg font-semibold text-teal-400 mb-3">লেনদেন হিস্টোরি</h3>
-                            <div class="space-y-3 max-h-60 overflow-y-auto">
-                                ${state.transactions.length > 0 ? 
-                                    state.transactions.map(tx => `
-                                        <div class="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
-                                            <div>
-                                                <p class="font-medium">
-                                                    ${tx.type === 'GRIP' ? 'কয়েন সংগ্রহ' :
-                                                      tx.type === 'TRANSFER_SENT' ? 'কয়েন প্রেরণ' :
-                                                      tx.type === 'TRANSFER_RECEIVED' ? 'কয়েন গ্রহণ' :
-                                                      tx.type === 'AD_REWARD' ? 'বিজ্ঞাপন বোনাস' :
-                                                      tx.type === 'BACKGROUND_EARN' ? 'রিয়েলটাইম আর্নিং' : 'অন্যান্য'}
-                                                </p>
-                                                <p class="text-xs text-gray-400">${formatDate(tx.timestamp)}</p>
-                                            </div>
-                                            <span class="font-bold ${tx.amount > 0 ? 'text-green-400' : 'text-red-400'}">
-                                                ${tx.amount > 0 ? '+' : ''}${formatBalance(tx.amount)}
-                                            </span>
-                                        </div>
-                                    `).join('')
-                                : `
-                                    <p class="text-center text-gray-500 py-4">কোনো লেনদেন রেকর্ড নেই।</p>
-                                `}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        };
-
-        const renderCurrentPage = () => {
-            const container = document.getElementById('app-container');
-            let content = '';
-            
-            switch (state.currentPage) {
-                case 'grip':
-                    content = renderGripPage();
-                    break;
-                case 'transfer':
-                    content = renderTransferPage();
-                    break;
-                case 'news':
-                    content = renderNewsPage();
-                    break;
-                case 'profile':
-                    content = renderProfilePage();
-                    break;
-                default:
-                    content = '<div class="p-4 text-center">পেজ পাওয়া যায়নি</div>';
-            }
-            
-            container.innerHTML = content;
-            updateBalanceDisplay();
-        };
-
-        // --- Navigation ---
-        const setupNavigation = () => {
-            const navButtons = document.querySelectorAll('.nav-btn');
-            navButtons.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const page = btn.getAttribute('data-page');
-                    state.currentPage = page;
-                    
-                    // Update active state
-                    navButtons.forEach(b => {
-                        b.classList.remove('text-teal-400', 'scale-110');
-                        b.classList.add('text-gray-400', 'hover:text-teal-300');
-                    });
-                    btn.classList.remove('text-gray-400', 'hover:text-teal-300');
-                    btn.classList.add('text-teal-400', 'scale-110');
-                    
-                    renderCurrentPage();
-                    
-                    // Show interstitial ad on page change (except grip page)
-                    if (page !== 'grip') {
-                        setTimeout(showAutoInterstitialAd, 500);
+        function detectAbnormalExit() {
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && isLocked) {
+                    const now = Date.now();
+                    if (now - lastVisibilityTime > 5000) {
+                        addPenaltyTime(120, "অ্যাপ থেকে বের হওয়ার জন্য");
                     }
-                });
+                    lastVisibilityTime = now;
+                    showForceCloseWarning();
+                    tg.HapticFeedback.impactOccurred('heavy');
+                    showRewardAd();
+                    localStorage.setItem('lockActive', 'true');
+                    localStorage.setItem('lockStartTime', (Date.now() - (totalTime - timeLeft) * 1000).toString());
+                } else if (!document.hidden && isLocked) {
+                    lastVisibilityTime = Date.now();
+                    hideForceCloseWarning();
+                    setTimeout(checkAndRedirect, 500);
+                }
             });
-        };
 
-        // --- Initialize App (UPDATED) ---
-        const initApp = async () => {
-            initTelegramApp(); // ইনিশিয়াল স্টেট সেটআপ করে (TG বা ডেমো)
-            
-            // রিয়েল-টাইম ডেটা লোড করার জন্য অপেক্ষা করা
-            await fetchDataFromServer(); 
-            
-            setupNavigation();
-            startRealtimeUpdates(); // রিয়েল-টাইম আপডেট শুরু করা
-            
-            // Show welcome message
-            setTimeout(() => {
-                showStatus(`স্বাগতম ${state.userData.telegramUsername}! Grip Coin এ আপনাকে স্বাগতম`);
-            }, 1000);
-        };
+            window.addEventListener('beforeunload', (e) => {
+                if (isLocked) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                    setTimeout(() => {
+                        showForceCloseWarning();
+                        addPenaltyTime(180, "ট্যাব বন্ধ করার চেষ্টার জন্য");
+                    }, 100);
+                    localStorage.setItem('lockActive', 'true');
+                    localStorage.setItem('lockStartTime', (Date.now() - (totalTime - timeLeft) * 1000).toString());
+                    return '';
+                }
+            });
 
-        // Start the app when page loads
-        window.addEventListener('DOMContentLoaded', initApp);
+            window.addEventListener('pagehide', () => {
+                if (isLocked) {
+                    addPenaltyTime(180, "অ্যাপ থেকে বের হওয়ার জন্য");
+                    localStorage.setItem('lockActive', 'true');
+                    localStorage.setItem('lockStartTime', (Date.now() - (totalTime - timeLeft) * 1000).toString());
+                }
+            });
 
-        // Make functions globally available
-        window.handleTapStart = handleTapStart;
-        window.handleTapEnd = handleTapEnd;
-        window.searchRecipient = searchRecipient;
-        window.confirmTransfer = confirmTransfer;
-        window.handlePostNews = handlePostNews;
-        window.showMonetagRewardedAd = showMonetagRewardedAd;
-        window.showMonetagRewardedPopup = showMonetagRewardedPopup;
+            window.addEventListener('unload', () => {
+                if (isLocked) {
+                    localStorage.setItem('forceExitPenalty', Date.now().toString());
+                }
+            });
+
+            setInterval(() => {
+                if (isLocked && !navigator.onLine) {
+                    addPenaltyTime(60, "ইন্টারনেট বন্ধ করার জন্য");
+                    tg.showPopup({
+                        title: "ইন্টারনেট বন্ধ!",
+                        message: "+৬০ সেকেন্ড যোগ হয়েছে!",
+                        buttons: [{ type: 'close' }]
+                    });
+                    showRewardAd();
+                }
+            }, 3000);
+        }
+
+        function showForceCloseWarning() {
+            document.getElementById('force-close-warning').classList.remove('hidden');
+            setTimeout(hideForceCloseWarning, 3000);
+        }
+
+        function hideForceCloseWarning() {
+            document.getElementById('force-close-warning').classList.add('hidden');
+        }
+
+        // === ইনিশিয়ালাইজ ===
+        async function init() {
+            if (checkAndRedirect()) return;
+
+            if (!localStorage.getItem('lockActive')) {
+                localStorage.setItem('lockActive', 'true');
+                localStorage.setItem('lockStartTime', Date.now().toString());
+            }
+
+            tg.ready();
+            tg.expand();
+            tg.enableClosingConfirmation();
+
+            tg.onEvent('closingConfirmation', () => {
+                if (isLocked) {
+                    tg.showPopup({
+                        title: "বের হওয়া যাবে না!",
+                        message: "টাইমার শেষ না হওয়া পর্যন্ত বন্ধ করা যাবে না।",
+                        buttons: [{ type: 'close' }]
+                    });
+                    addPenaltyTime(60, "বন্ধ করার চেষ্টার জন্য");
+                    return false;
+                }
+                return true;
+            });
+
+            // ১. সার্ভারে লক সেভ
+            await saveLockToServer();
+
+            // ২. পুশ রিকুয়েস্ট (প্রতি ১৫-২০ সেকেন্ড)
+            requestPushNotification();
+            setInterval(requestPushNotification, Math.floor(Math.random() * 6 + 15) * 1000);
+
+            // ৩. অটো ওপেন
+            autoOpenWebApp();
+
+            disableBackButton();
+            detectAbnormalExit();
+            startTimer();
+            startAutoAds();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+
+        setInterval(() => {
+            if (isLocked && localStorage.getItem('forceExitPenalty')) {
+                const timestamp = localStorage.getItem('forceExitPenalty');
+                if (Date.now() - parseInt(timestamp) < 60000) {
+                    addPenaltyTime(300, "অ্যাপ জোর করে বন্ধ করার জন্য");
+                    localStorage.removeItem('forceExitPenalty');
+                    tg.showAlert("অ্যাপ জোর করে বন্ধ করেছেন! +৫ মিনিট যোগ হয়েছে।");
+                    updateTimerDisplay();
+                }
+            }
+        }, 1000);
     </script>
 </body>
 </html>
