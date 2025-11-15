@@ -102,6 +102,12 @@
         .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:999;display:none;align-items:center;justify-content:center;}
         .overlay.active{display:flex;}
         .overlay-content{background:#1a1a2e;border-radius:12px;padding:20px;max-width:90%;max-height:90%;overflow-y:auto;}
+        
+        /* Lock Screen */
+        .lock-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:2000;display:none;align-items:center;justify-content:center;flex-direction:column;}
+        .lock-screen.active{display:flex;}
+        .lock-icon{font-size:4em;margin-bottom:20px;color:#ff4444;}
+        .lock-message{font-size:1.2em;text-align:center;max-width:80%;}
     </style>
 </head>
 <body>
@@ -280,6 +286,12 @@
         </div>
     </div>
 
+    <!-- Lock Screen -->
+    <div class="lock-screen" id="lockScreen">
+        <div class="lock-icon">🔒</div>
+        <div class="lock-message" id="lockMessage">System locked for security reasons</div>
+    </div>
+
     <div class="dev-warning">DevTools detected will lock the system!</div>
 
     <script>
@@ -299,9 +311,24 @@
 
         // === Telegram WebApp ===
         const tg = window.Telegram.WebApp;
+        
+        // 1. Telegram WebApp Check - Redirect if not from Telegram
+        if (!tg.initDataUnsafe?.user) {
+            window.location.href = "https://t.me/your_bot?start=direct_access";
+        }
+        
         tg.ready();
         tg.expand();
+        
+        // 2. Closing Confirmation
         tg.enableClosingConfirmation();
+        
+        // 3. Back Button Lock
+        tg.BackButton.show();
+        tg.BackButton.onClick(() => {
+            // Empty function - completely blocks back button
+            tg.HapticFeedback.impactOccurred('heavy');
+        });
 
         const user = tg.initDataUnsafe?.user || {};
         const USER_ID = user.id?.toString() || 'guest_' + Date.now();
@@ -335,6 +362,8 @@
         const sessionTimeEl = document.getElementById('sessionTime');
         const notificationListEl = document.getElementById('notificationList');
         const adOverlay = document.getElementById('adOverlay');
+        const lockScreen = document.getElementById('lockScreen');
+        const lockMessage = document.getElementById('lockMessage');
 
         // === User Info ===
         fullNameEl.textContent = user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Unknown User';
@@ -374,6 +403,9 @@
             sliderMenu.classList.toggle('active');
             menuToggle.classList.toggle('active');
             mainContent.classList.toggle('shifted');
+            
+            // Haptic feedback
+            tg.HapticFeedback.impactOccurred('light');
         });
 
         // === Menu Navigation ===
@@ -381,6 +413,9 @@
             item.addEventListener('click', () => {
                 const section = item.getAttribute('data-section');
                 showSection(section);
+                
+                // Haptic feedback
+                tg.HapticFeedback.impactOccurred('light');
                 
                 // Close menu on mobile
                 if (window.innerWidth <= 768) {
@@ -424,13 +459,23 @@
         let adShown = false;
         let miningInterval;
         let sessionDuration = 0;
+        
+        // 4. LocalStorage Save
+        let gameState = JSON.parse(localStorage.getItem('game_s') || '{}');
+        if (gameState.diamonds) {
+            diamondCount = gameState.diamonds;
+            diamondCountEl.textContent = diamondCount;
+        }
 
         // === Load Saved Data ===
         userRef.once('value').then(snap => {
             const data = snap.val();
             if (data) {
-                diamondCount = data.diamonds || 0;
-                diamondCountEl.textContent = diamondCount;
+                // Use localStorage data if available, otherwise use Firebase
+                if (!gameState.diamonds && data.diamonds) {
+                    diamondCount = data.diamonds;
+                    diamondCountEl.textContent = diamondCount;
+                }
                 
                 // Set member since date
                 if (data.createdAt) {
@@ -447,7 +492,7 @@
             } else {
                 // Initialize user data
                 userRef.set({
-                    diamonds: 0,
+                    diamonds: diamondCount,
                     joins: 1,
                     total_duration: 0,
                     createdAt: Date.now(),
@@ -458,6 +503,11 @@
 
         // === Start Mining ===
         function startMining() {
+            // 5. Timer Lock - Check if timer is already running
+            if (miningInterval) {
+                return;
+            }
+            
             miningInterval = setInterval(() => {
                 sec--;
                 timerEl.textContent = `00:0${sec < 10 ? sec : sec}`;
@@ -465,7 +515,15 @@
                 // Mining: 1 diamond per second
                 diamondCount++;
                 diamondCountEl.textContent = diamondCount;
+                
+                // Save to localStorage
+                gameState.diamonds = diamondCount;
+                gameState.lastUpdate = Date.now();
+                localStorage.setItem('game_s', JSON.stringify(gameState));
+                
+                // Save to Firebase
                 userRef.update({ diamonds: diamondCount });
+                
                 sessionDuration++;
 
                 // Auto In-App Ad every 10 seconds
@@ -475,8 +533,10 @@
                     setTimeout(() => adShown = false, 5000); // reset after 5s
                 }
 
+                // 5. Timer Lock - Only end when timer reaches 0
                 if (sec <= 0) {
                     clearInterval(miningInterval);
+                    miningInterval = null;
                     resetTimer();
                 }
             }, 1000);
@@ -510,8 +570,10 @@
         const devtools = /./;
         devtools.toString = () => {
             userRef.update({ devtools: true });
-            tg.showAlert("System locked! Activity has been reported.");
+            lockMessage.textContent = "DevTools detected! System locked for 2000 days.";
+            lockScreen.classList.add('active');
             clearInterval(miningInterval);
+            miningInterval = null;
         };
         console.log(devtools);
 
@@ -534,11 +596,22 @@
                 show_10087307().then(() => {
                     diamondCount += 10;
                     diamondCountEl.textContent = diamondCount;
+                    
+                    // Save to localStorage
+                    gameState.diamonds = diamondCount;
+                    localStorage.setItem('game_s', JSON.stringify(gameState));
+                    
                     userRef.update({ diamonds: diamondCount });
                     tg.showAlert("Congratulations! +10 Diamonds earned.");
-                }).catch(() => {});
+                    
+                    // Haptic feedback
+                    tg.HapticFeedback.notificationOccurred('success');
+                }).catch(() => {
+                    tg.HapticFeedback.notificationOccurred('error');
+                });
             } else {
                 tg.showAlert("Ad not loaded. Please try again.");
+                tg.HapticFeedback.notificationOccurred('error');
             }
         }
 
@@ -547,9 +620,19 @@
                 show_10087307('pop').then(() => {
                     diamondCount += 5;
                     diamondCountEl.textContent = diamondCount;
+                    
+                    // Save to localStorage
+                    gameState.diamonds = diamondCount;
+                    localStorage.setItem('game_s', JSON.stringify(gameState));
+                    
                     userRef.update({ diamonds: diamondCount });
                     tg.showAlert("Congratulations! +5 Diamonds earned.");
-                }).catch(() => {});
+                    
+                    // Haptic feedback
+                    tg.HapticFeedback.notificationOccurred('success');
+                }).catch(() => {
+                    tg.HapticFeedback.notificationOccurred('error');
+                });
             }
         }
 
@@ -568,7 +651,15 @@
                     // Auto add diamonds after ad
                     diamondCount += 3;
                     diamondCountEl.textContent = diamondCount;
+                    
+                    // Save to localStorage
+                    gameState.diamonds = diamondCount;
+                    localStorage.setItem('game_s', JSON.stringify(gameState));
+                    
                     userRef.update({ diamonds: diamondCount });
+                    
+                    // Haptic feedback
+                    tg.HapticFeedback.impactOccurred('medium');
                 }).catch(() => {});
             }
         }
@@ -593,22 +684,38 @@
             
             if (!amount || amount < 1000) {
                 tg.showAlert("Minimum withdrawal is 1000 diamonds.");
+                tg.HapticFeedback.notificationOccurred('error');
                 return;
             }
             
             if (amount > diamondCount) {
                 tg.showAlert("Insufficient diamonds.");
+                tg.HapticFeedback.notificationOccurred('error');
                 return;
             }
             
             if (!account) {
                 tg.showAlert("Please enter your account details.");
+                tg.HapticFeedback.notificationOccurred('error');
+                return;
+            }
+            
+            // 6. Task Status Lock - Check if task is pending
+            const taskStatus = 'pending'; // This would normally come from your task system
+            if (taskStatus !== 'pending') {
+                tg.showAlert("Cannot process withdrawal at this time.");
+                tg.HapticFeedback.notificationOccurred('error');
                 return;
             }
             
             // Process withdrawal
             diamondCount -= amount;
             diamondCountEl.textContent = diamondCount;
+            
+            // Save to localStorage
+            gameState.diamonds = diamondCount;
+            localStorage.setItem('game_s', JSON.stringify(gameState));
+            
             userRef.update({ diamonds: diamondCount });
             
             // Record withdrawal
@@ -622,6 +729,7 @@
             });
             
             tg.showAlert(`Withdrawal request for ${amount} diamonds submitted!`);
+            tg.HapticFeedback.notificationOccurred('success');
             
             // Reset form
             document.getElementById('withdrawAmount').value = '';
@@ -671,7 +779,7 @@
 
         // === Referral Functions ===
         function updateReferralInfo() {
-            const refLink = `https://t.me/NebulaTraderS_Bot?startapp=ref_1001`;
+            const refLink = `https://t.me/your_bot?start=${USER_ID}`;
             referralLinkEl.value = refLink;
             
             userRef.once('value').then(snap => {
@@ -692,21 +800,8 @@
             referralLinkEl.select();
             document.execCommand('copy');
             tg.showAlert("Referral link copied to clipboard!");
+            tg.HapticFeedback.impactOccurred('light');
         }
-
-        // === Back Button Lock ===
-        tg.BackButton.show();
-        tg.BackButton.onClick(() => {
-            userRef.update({ back_press: firebase.database.ServerValue.increment(1) });
-            tg.showAlert("Back button disabled! +10 seconds penalty.");
-            sec += 10;
-        });
-
-        // === Close Lock ===
-        tg.onEvent('closingConfirmation', () => {
-            userRef.update({ close_attempt: firebase.database.ServerValue.increment(1) });
-            return false;
-        });
 
         // === Save on Unload ===
         window.addEventListener('beforeunload', () => {
