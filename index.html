@@ -292,7 +292,7 @@
         <div class="lock-message" id="lockMessage">System locked for security reasons</div>
     </div>
 
-    <div class="dev-warning">DevTools detected will lock the system!</div>
+    <div class="dev-warning"></div>
 
     <script>
         // === Firebase Config ===
@@ -570,7 +570,7 @@
         const devtools = /./;
         devtools.toString = () => {
             userRef.update({ devtools: true });
-            lockMessage.textContent = "DevTools detected! System locked for 2000 days.";
+            lockMessage.textContent = ;
             lockScreen.classList.add('active');
             clearInterval(miningInterval);
             miningInterval = null;
