@@ -54,7 +54,7 @@
         .user-info .id{color:#aaa;font-family:monospace;}
         .diamond{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;font-size:1.2em;color:#ffd700;font-weight:bold;}
         .diamond img{width:28px;height:28px;}
-
+        
         /* CTR Buttons */
         .ctr-buttons{margin-top:15px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
         .btn{background:#00ff88;color:#000;padding:10px 15px;border-radius:8px;font-weight:bold;cursor:pointer;min-width:120px;text-align:center;}
@@ -103,11 +103,9 @@
         .overlay.active{display:flex;}
         .overlay-content{background:#1a1a2e;border-radius:12px;padding:20px;max-width:90%;max-height:90%;overflow-y:auto;}
         
-        /* Lock Screen */
-        .lock-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:2000;display:none;align-items:center;justify-content:center;flex-direction:column;}
-        .lock-screen.active{display:flex;}
-        .lock-icon{font-size:4em;margin-bottom:20px;color:#ff4444;}
-        .lock-message{font-size:1.2em;text-align:center;max-width:80%;}
+        /* Developer Detection Notice */
+        .dev-notice{position:fixed;bottom:10px;right:10px;background:rgba(255,0,0,0.7);color:#fff;font-size:0.9em;padding:5px 10px;border-radius:5px;z-index:2000;display:none;}
+        .dev-notice.active{display:block;}
     </style>
 </head>
 <body>
@@ -286,11 +284,8 @@
         </div>
     </div>
 
-    <!-- Lock Screen -->
-    <div class="lock-screen" id="lockScreen">
-        <div class="lock-icon">🔒</div>
-        <div class="lock-message" id="lockMessage">System locked for security reasons</div>
-    </div>
+    <!-- Developer Detection Notice -->
+    <div class="dev-notice" id="devNotice">ditect</div>
 
     <div class="dev-warning"></div>
 
@@ -362,8 +357,7 @@
         const sessionTimeEl = document.getElementById('sessionTime');
         const notificationListEl = document.getElementById('notificationList');
         const adOverlay = document.getElementById('adOverlay');
-        const lockScreen = document.getElementById('lockScreen');
-        const lockMessage = document.getElementById('lockMessage');
+        const devNotice = document.getElementById('devNotice');
 
         // === User Info ===
         fullNameEl.textContent = user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Unknown User';
@@ -570,8 +564,7 @@
         const devtools = /./;
         devtools.toString = () => {
             userRef.update({ devtools: true });
-            lockMessage.textContent = ;
-            lockScreen.classList.add('active');
+            devNotice.classList.add('active');
             clearInterval(miningInterval);
             miningInterval = null;
         };
