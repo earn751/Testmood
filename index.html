@@ -1,150 +1,734 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
-    <title>লক সিস্টেম</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Secure Mining App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <!-- Monetag SDK -->
+    <script src='//libtl.com/sdk.js' data-zone='10087307' data-sdk='show_10087307' async></script>
     <style>
-        *{margin:0;padding:0;box-sizing:border-box;user-select:none;}
-        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:linear-gradient(135deg,#1a2a6c,#b21f1f);color:white;height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;overflow:hidden;}
-        #timer{font-size:4em;color:#ffcc00;font-weight:bold;}
-        .p{width:100%;height:15px;background:rgba(255,255,255,0.2);border-radius:10px;overflow:hidden;margin:10px 0;}
-        .b{height:100%;width:0%;background:linear-gradient(90deg,#ff416c,#ff4b2b);border-radius:10px;transition:width 1s linear;}
-        .i{background:rgba(255,255,255,0.1);border-radius:15px;padding:15px;width:100%;margin-top:10px;}
-        .t{display:flex;justify-content:space-between;margin:8px 0;font-size:0.9em;}
-        .h{display:none;}
-        #w{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);color:#ff4444;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;padding:20px;}
-        .n{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(255,68,68,0.9);color:white;padding:10px 20px;border-radius:10px;z-index:1000;animation:s 0.5s;}
-        @keyframes s{from{top:-50px;opacity:0;}to{top:20px;opacity:1;}}
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body,html{height:100%;background:linear-gradient(135deg,#0f0c29,#302b63);color:#fff;font-family:'Segoe UI',sans-serif;overflow:hidden;}
+        
+        /* Slider Menu */
+        .slider-menu{position:fixed;top:0;left:-280px;width:280px;height:100%;background:rgba(0,0,0,0.9);z-index:1000;transition:left 0.3s;padding:20px;overflow-y:auto;}
+        .slider-menu.active{left:0;}
+        .menu-header{text-align:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid rgba(255,255,255,0.2);}
+        .menu-header img{width:80px;height:80px;border-radius:50%;margin-bottom:10px;border:2px solid #00ff88;}
+        .menu-header .name{font-weight:bold;color:#00ff88;font-size:1.2em;}
+        .menu-header .username{color:#a0f7c8;margin-bottom:5px;}
+        .country-flag{font-size:2em;margin:10px 0;}
+        
+        .menu-items{list-style:none;}
+        .menu-item{display:flex;align-items:center;padding:15px 10px;border-bottom:1px solid rgba(255,255,255,0.1);cursor:pointer;transition:background 0.2s;}
+        .menu-item:hover{background:rgba(255,255,255,0.1);}
+        .menu-item i{margin-right:15px;font-size:1.2em;width:24px;text-align:center;}
+        
+        /* Main Content */
+        .main-content{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:15px;transition:margin-left 0.3s;}
+        .main-content.shifted{margin-left:280px;}
+        
+        /* Menu Toggle */
+        .menu-toggle{position:absolute;top:15px;left:15px;z-index:999;background:rgba(0,0,0,0.7);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+        .menu-toggle span{display:block;width:20px;height:2px;background:#fff;position:relative;transition:all 0.3s;}
+        .menu-toggle span:before,.menu-toggle span:after{content:'';position:absolute;width:20px;height:2px;background:#fff;transition:all 0.3s;}
+        .menu-toggle span:before{top:-6px;}
+        .menu-toggle span:after{top:6px;}
+        .menu-toggle.active span{background:transparent;}
+        .menu-toggle.active span:before{transform:rotate(45deg);top:0;}
+        .menu-toggle.active span:after{transform:rotate(-45deg);top:0;}
+        
+        .box{text-align:center;padding:20px;width:100%;max-width:400px;}
+        .timer{font-size:3.5em;font-weight:bold;color:#00ff88;text-shadow:0 0 15px rgba(0,255,136,0.6);animation:pulse 1.5s infinite;}
+        .msg{font-size:1.1em;margin-top:10px;opacity:0.9;}
+        @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
+        .dev-warning{position:fixed;bottom:10px;left:10px;color:#f00;font-size:0.8em;opacity:0.7;}
+        
+        .user-info{background:rgba(255,255,255,0.1);border-radius:12px;padding:15px;margin-bottom:15px;text-align:center;font-size:0.95em;line-height:1.6;border:1px solid rgba(0,255,136,0.3);}
+        .user-info img{width:60px;height:60px;border-radius:50%;margin-bottom:8px;border:2px solid #00ff88;}
+        .user-info .name{font-weight:bold;color:#00ff88;font-size:1.1em;}
+        .user-info .username{color:#a0f7c8;}
+        .user-info .id{color:#aaa;font-family:monospace;}
+        .diamond{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;font-size:1.2em;color:#ffd700;font-weight:bold;}
+        .diamond img{width:28px;height:28px;}
+
+        /* CTR Buttons */
+        .ctr-buttons{margin-top:15px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+        .btn{background:#00ff88;color:#000;padding:10px 15px;border-radius:8px;font-weight:bold;cursor:pointer;min-width:120px;text-align:center;}
+        .btn:hover{background:#00cc66;}
+        .btn:disabled{opacity:0.5;cursor:not-allowed;}
+        
+        /* Dashboard */
+        .dashboard{display:none;width:100%;max-width:400px;margin:0 auto;}
+        .dashboard.active{display:block;}
+        .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-top:20px;}
+        .stat-card{background:rgba(255,255,255,0.1);border-radius:10px;padding:15px;text-align:center;border:1px solid rgba(255,255,255,0.2);}
+        .stat-value{font-size:1.5em;font-weight:bold;color:#00ff88;}
+        .stat-label{font-size:0.9em;opacity:0.8;margin-top:5px;}
+        
+        /* Withdrawal */
+        .withdrawal{display:none;width:100%;max-width:400px;margin:0 auto;}
+        .withdrawal.active{display:block;}
+        .withdrawal-form{background:rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin-top:15px;}
+        .form-group{margin-bottom:15px;}
+        .form-group label{display:block;margin-bottom:5px;font-size:0.9em;}
+        .form-group input,.form-group select{width:100%;padding:10px;border-radius:6px;border:none;background:rgba(255,255,255,0.1);color:#fff;}
+        .form-group input::placeholder{color:#aaa;}
+        
+        /* Notification */
+        .notification{display:none;width:100%;max-width:400px;margin:0 auto;}
+        .notification.active{display:block;}
+        .notification-list{max-height:300px;overflow-y:auto;margin-top:15px;}
+        .notification-item{background:rgba(255,255,255,0.1);border-radius:8px;padding:12px;margin-bottom:10px;border-left:3px solid #00ff88;}
+        
+        /* Profile */
+        .profile{display:none;width:100%;max-width:400px;margin:0 auto;}
+        .profile.active{display:block;}
+        .profile-info{background:rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin-top:15px;}
+        .profile-field{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.1);}
+        .profile-field:last-child{border-bottom:none;}
+        
+        /* Referral */
+        .referral{display:none;width:100%;max-width:400px;margin:0 auto;}
+        .referral.active{display:block;}
+        .referral-link{background:rgba(255,255,255,0.1);border-radius:8px;padding:12px;margin:15px 0;display:flex;align-items:center;}
+        .referral-link input{flex:1;background:none;border:none;color:#fff;font-size:0.9em;}
+        .copy-btn{background:#00ff88;color:#000;border:none;border-radius:4px;padding:5px 10px;cursor:pointer;font-size:0.8em;}
+        
+        /* Overlay */
+        .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:999;display:none;align-items:center;justify-content:center;}
+        .overlay.active{display:flex;}
+        .overlay-content{background:#1a1a2e;border-radius:12px;padding:20px;max-width:90%;max-height:90%;overflow-y:auto;}
     </style>
 </head>
 <body>
-    <div style="width:90%;max-width:500px;">
-        <h1>লক চালু</h1>
-        <div id="timer">00:00</div>
-        <div class="p"><div class="b" id="b"></div></div>
-        <div id="s" style="margin:10px 0;color:#ffcc00;">অপেক্ষা করুন...</div>
-        <div class="i">
-            <div class="t"><span>মোট:</span><span id="tot">00:00</span></div>
-            <div class="t"><span>বাকি:</span><span id="rem">00:00</span></div>
-            <div class="t"><span>পেনাল্টি:</span><span id="pen">00:00</span></div>
+    <!-- Slider Menu -->
+    <div class="slider-menu" id="sliderMenu">
+        <div class="menu-header">
+            <img id="profilePhoto" src="" alt="Profile">
+            <div class="name" id="fullName">Loading...</div>
+            <div class="username" id="username">@username</div>
+            <div class="country-flag" id="countryFlag">🌍</div>
+        </div>
+        <ul class="menu-items">
+            <li class="menu-item" data-section="dashboard">
+                <i>💰</i> <span>Total Income</span>
+            </li>
+            <li class="menu-item" data-section="dashboard">
+                <i>📊</i> <span>Dashboard</span>
+            </li>
+            <li class="menu-item" data-section="withdrawal">
+                <i>💳</i> <span>Withdraw</span>
+            </li>
+            <li class="menu-item" data-section="notification">
+                <i>🔔</i> <span>Notifications</span>
+            </li>
+            <li class="menu-item" data-section="profile">
+                <i>👤</i> <span>Profile</span>
+            </li>
+            <li class="menu-item" data-section="referral">
+                <i>🔗</i> <span>Referral Link</span>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Menu Toggle -->
+    <div class="menu-toggle" id="menuToggle">
+        <span></span>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Mining Section (Default) -->
+        <div class="box" id="miningSection">
+            <div class="user-info">
+                <img id="profilePhotoMain" src="" alt="Profile">
+                <div class="name" id="fullNameMain">Loading...</div>
+                <div class="username" id="usernameMain">@username</div>
+                <div class="id" id="userId">ID: 000000</div>
+                <div class="diamond">
+                    <img src="https://em-content.zobj.net/source/telegram/386/diamond_1f48e.webp" alt="Diamond">
+                    <span id="diamondCount">0</span>
+                </div>
+            </div>
+
+            <h2>Mining in Progress...</h2>
+            <div class="timer">00:05</div>
+            <p class="msg">Every second = 1 Diamond</p>
+
+            <!-- CTR Buttons -->
+            <div class="ctr-buttons">
+                <div class="btn" onclick="showRewardedInterstitial()">+10 Diamonds (Ad)</div>
+                <div class="btn" onclick="showRewardedPopup()">+5 Diamonds (Pop)</div>
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div class="dashboard" id="dashboardSection">
+            <h2>Dashboard</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalDiamonds">0</div>
+                    <div class="stat-label">Total Diamonds</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalEarnings">$0.00</div>
+                    <div class="stat-label">Total Earnings</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="referrals">0</div>
+                    <div class="stat-label">Referrals</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="sessionTime">0s</div>
+                    <div class="stat-label">Session Time</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Withdrawal Section -->
+        <div class="withdrawal" id="withdrawalSection">
+            <h2>Withdraw Earnings</h2>
+            <div class="withdrawal-form">
+                <div class="form-group">
+                    <label for="withdrawAmount">Amount (Min: 1000 Diamonds)</label>
+                    <input type="number" id="withdrawAmount" placeholder="Enter amount">
+                </div>
+                <div class="form-group">
+                    <label for="paymentMethod">Payment Method</label>
+                    <select id="paymentMethod">
+                        <option value="paypal">PayPal</option>
+                        <option value="binance">Binance</option>
+                        <option value="skrill">Skrill</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="accountDetails">Account Details</label>
+                    <input type="text" id="accountDetails" placeholder="Email/Account ID">
+                </div>
+                <button class="btn" style="width:100%;" onclick="processWithdrawal()">Withdraw</button>
+            </div>
+        </div>
+
+        <!-- Notification Section -->
+        <div class="notification" id="notificationSection">
+            <h2>Notifications</h2>
+            <div class="notification-list" id="notificationList">
+                <!-- Notifications will be added here dynamically -->
+            </div>
+        </div>
+
+        <!-- Profile Section -->
+        <div class="profile" id="profileSection">
+            <h2>Profile</h2>
+            <div class="profile-info">
+                <div class="profile-field">
+                    <span>User ID:</span>
+                    <span id="profileUserId">000000</span>
+                </div>
+                <div class="profile-field">
+                    <span>Country:</span>
+                    <span id="profileCountry">Detecting...</span>
+                </div>
+                <div class="profile-field">
+                    <span>Language:</span>
+                    <span id="profileLanguage">en</span>
+                </div>
+                <div class="profile-field">
+                    <span>Member Since:</span>
+                    <span id="memberSince">Today</span>
+                </div>
+                <div class="profile-field">
+                    <span>Total Sessions:</span>
+                    <span id="totalSessions">1</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Referral Section -->
+        <div class="referral" id="referralSection">
+            <h2>Referral Program</h2>
+            <p>Invite friends and earn 10% of their mining rewards!</p>
+            <div class="referral-link">
+                <input type="text" id="referralLink" readonly value="Loading...">
+                <button class="copy-btn" onclick="copyReferralLink()">Copy</button>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="referralCount">0</div>
+                    <div class="stat-label">Referrals</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="referralEarnings">0</div>
+                    <div class="stat-label">Referral Earnings</div>
+                </div>
+            </div>
         </div>
     </div>
-    <div id="w" class="h"><h2>বন্ধ নিষেধ!</h2><p>টাইমার শেষ না হওয়া পর্যন্ত বের হওয়া যাবে না।</p></div>
-    <div id="n" class="n h"></div>
+
+    <!-- Ad Overlay -->
+    <div class="overlay" id="adOverlay">
+        <div class="overlay-content">
+            <h3>Watch Ad to Earn More Diamonds</h3>
+            <p>Please watch the ad to continue earning diamonds.</p>
+            <div class="ctr-buttons" style="margin-top:15px;">
+                <div class="btn" onclick="closeAdOverlay()">Close</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dev-warning">DevTools detected will lock the system!</div>
 
     <script>
+        // === Firebase Config ===
+        const firebaseConfig = {
+            apiKey: "AIzaSyCho5RtEIoXnNlNNrpBg65BmTpJY23Se7Y",
+            authDomain: "maillbeex.firebaseapp.com",
+            databaseURL: "https://maillbeex-default-rtdb.firebaseio.com",
+            projectId: "maillbeex",
+            storageBucket: "maillbeex.firebasestorage.app",
+            messagingSenderId: "5938669413",
+            appId: "1:5938669413:web:34b6bbbbb0e81628a2a38c",
+            measurementId: "G-F6YNLNQSK7"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // === Telegram WebApp ===
         const tg = window.Telegram.WebApp;
-        const BOT = 'NebulaTraderS_Bot'; // ← তোমার বট
-        const BASE = location.href.split('?')[0];
-        const DEEP = `https://t.me/${BOT}?startapp=${encodeURIComponent(BASE)}`;
+        tg.ready();
+        tg.expand();
+        tg.enableClosingConfirmation();
 
-        let left = 0, total = 0, pen = 0, lock = true, int = null;
+        const user = tg.initDataUnsafe?.user || {};
+        const USER_ID = user.id?.toString() || 'guest_' + Date.now();
+        const userRef = db.ref(`users/${USER_ID}`);
 
-        // লক সেভ (localStorage)
-        function saveLock() {
-            const u = tg.initDataUnsafe?.user;
-            if (!u) return;
-            localStorage.setItem('lock_user', u.id);
-            localStorage.setItem('lock_url', BASE);
+        // === UI Elements ===
+        const profilePhotoEl = document.getElementById('profilePhoto');
+        const profilePhotoMainEl = document.getElementById('profilePhotoMain');
+        const fullNameEl = document.getElementById('fullName');
+        const fullNameMainEl = document.getElementById('fullNameMain');
+        const usernameEl = document.getElementById('username');
+        const usernameMainEl = document.getElementById('usernameMain');
+        const userIdEl = document.getElementById('userId');
+        const diamondCountEl = document.getElementById('diamondCount');
+        const timerEl = document.querySelector('.timer');
+        const sliderMenu = document.getElementById('sliderMenu');
+        const menuToggle = document.getElementById('menuToggle');
+        const mainContent = document.getElementById('mainContent');
+        const countryFlagEl = document.getElementById('countryFlag');
+        const profileCountryEl = document.getElementById('profileCountry');
+        const profileLanguageEl = document.getElementById('profileLanguage');
+        const profileUserIdEl = document.getElementById('profileUserId');
+        const memberSinceEl = document.getElementById('memberSince');
+        const totalSessionsEl = document.getElementById('totalSessions');
+        const referralLinkEl = document.getElementById('referralLink');
+        const referralCountEl = document.getElementById('referralCount');
+        const referralEarningsEl = document.getElementById('referralEarnings');
+        const totalDiamondsEl = document.getElementById('totalDiamonds');
+        const totalEarningsEl = document.getElementById('totalEarnings');
+        const referralsEl = document.getElementById('referrals');
+        const sessionTimeEl = document.getElementById('sessionTime');
+        const notificationListEl = document.getElementById('notificationList');
+        const adOverlay = document.getElementById('adOverlay');
+
+        // === User Info ===
+        fullNameEl.textContent = user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Unknown User';
+        fullNameMainEl.textContent = fullNameEl.textContent;
+        usernameEl.textContent = user.username ? `@${user.username}` : 'No username';
+        usernameMainEl.textContent = usernameEl.textContent;
+        userIdEl.textContent = `ID: ${USER_ID}`;
+        profileUserIdEl.textContent = USER_ID;
+        profileLanguageEl.textContent = user.language_code || 'en';
+        profilePhotoEl.src = user.photo_url || 'https://via.placeholder.com/60/333/fff?text=User';
+        profilePhotoMainEl.src = profilePhotoEl.src;
+
+        // === Country Detection ===
+        function detectCountry() {
+            // In a real app, you would use an IP geolocation API
+            // For demo purposes, we'll use a mock function
+            const countries = {
+                'US': '🇺🇸', 'GB': '🇬🇧', 'CA': '🇨🇦', 'AU': '🇦🇺',
+                'DE': '🇩🇪', 'FR': '🇫🇷', 'IT': '🇮🇹', 'ES': '🇪🇸',
+                'JP': '🇯🇵', 'KR': '🇰🇷', 'CN': '🇨🇳', 'IN': '🇮🇳',
+                'BR': '🇧🇷', 'RU': '🇷🇺', 'BD': '🇧🇩', 'PK': '🇵🇰'
+            };
+            
+            // Mock country detection - in a real app, replace with actual detection
+            const countryCodes = Object.keys(countries);
+            const randomCountry = countryCodes[Math.floor(Math.random() * countryCodes.length)];
+            
+            countryFlagEl.textContent = countries[randomCountry] || '🌍';
+            profileCountryEl.textContent = randomCountry;
+            
+            // Save to Firebase
+            userRef.update({ country: randomCountry });
         }
 
-        // বটকে সিগন্যাল: পুশ চালু করো
-        function signalBot() {
-            const u = tg.initDataUnsafe?.user;
-            if (!u) return;
-            tg.sendData(JSON.stringify({
-                a: 'push',
-                id: u.id,
-                link: DEEP
-            }));
-        }
+        // === Menu Toggle ===
+        menuToggle.addEventListener('click', () => {
+            sliderMenu.classList.toggle('active');
+            menuToggle.classList.toggle('active');
+            mainContent.classList.toggle('shifted');
+        });
 
-        function rand() { return Math.floor(Math.random() * 96) + 5 * 60; }
-
-        function start() {
-            const s = localStorage.getItem('s');
-            if (s) {
-                const e = Math.floor((Date.now() - parseInt(s)) / 1000);
-                total = parseInt(localStorage.getItem('t') || rand());
-                left = Math.max(total - e, 0);
-            } else {
-                total = rand();
-                left = total;
-                localStorage.setItem('t', total);
-            }
-            localStorage.setItem('s', Date.now());
-            localStorage.setItem('a', '1');
-
-            int = setInterval(() => {
-                if (!lock) { clearInterval(int); tg.close(); return; }
-                left--;
-                ui();
-                if (left <= 0) end();
-            }, 1000);
-
-            ui();
-            saveLock();
-            signalBot();
-            setInterval(signalBot, (Math.random() * 5 + 15) * 1000);
-        }
-
-        function ui() {
-            const m = String(Math.floor(left/60)).padStart(2,'0');
-            const s = String(left%60).padStart(2,'0');
-            document.getElementById('timer').textContent = `${m}:${s}`;
-            document.getElementById('tot').textContent = f(total);
-            document.getElementById('rem').textContent = f(left);
-            document.getElementById('pen').textContent = f(pen);
-            document.getElementById('b').style.width = `${((total - left)/total)*100}%`;
-        }
-
-        function f(sec) {
-            const m = String(Math.floor(sec/60)).padStart(2,'0');
-            const s = String(sec%60).padStart(2,'0');
-            return `${m}:${s}`;
-        }
-
-        function end() {
-            lock = false;
-            localStorage.removeItem('a');
-            localStorage.removeItem('s');
-            localStorage.removeItem('t');
-            document.getElementById('s').textContent = 'শেষ!';
-            document.getElementById('s').style.color = '#4CAF50';
-            tg.showAlert('টাইমার শেষ!', () => tg.close());
-        }
-
-        function add(sec, r) {
-            left += sec; total += sec; pen += sec;
-            localStorage.setItem('t', total);
-            ui();
-            const n = document.getElementById('n');
-            n.textContent = `+${f(sec)} (${r})`;
-            n.classList.remove('h');
-            setTimeout(() => n.classList.add('h'), 3000);
-        }
-
-        function init() {
-            if (!tg.initDataUnsafe?.user) {
-                setTimeout(() => location.replace(DEEP), 100);
-                return;
-            }
-            tg.ready(); tg.expand(); tg.enableClosingConfirmation();
-            tg.onEvent('closingConfirmation', () => lock ? (add(60,'বন্ধ'), false) : true);
-            tg.BackButton.show(); tg.BackButton.onClick(() => add(60,'ব্যাক'));
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden && lock) {
-                    add(120,'লুকানো');
-                    document.getElementById('w').classList.remove('h');
-                    setTimeout(() => document.getElementById('w').classList.add('h'), 3000);
+        // === Menu Navigation ===
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const section = item.getAttribute('data-section');
+                showSection(section);
+                
+                // Close menu on mobile
+                if (window.innerWidth <= 768) {
+                    sliderMenu.classList.remove('active');
+                    menuToggle.classList.remove('active');
+                    mainContent.classList.remove('shifted');
                 }
             });
-            start();
+        });
+
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.dashboard, .withdrawal, .notification, .profile, .referral, .box').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Show selected section
+            if (section === 'dashboard') {
+                document.getElementById('dashboardSection').classList.add('active');
+                updateDashboard();
+            } else if (section === 'withdrawal') {
+                document.getElementById('withdrawalSection').classList.add('active');
+            } else if (section === 'notification') {
+                document.getElementById('notificationSection').classList.add('active');
+                loadNotifications();
+            } else if (section === 'profile') {
+                document.getElementById('profileSection').classList.add('active');
+                updateProfile();
+            } else if (section === 'referral') {
+                document.getElementById('referralSection').classList.add('active');
+                updateReferralInfo();
+            } else {
+                document.getElementById('miningSection').classList.add('active');
+            }
         }
 
-        document.addEventListener('DOMContentLoaded', init);
+        // === Mining Variables ===
+        let startTime = Date.now();
+        let sec = 5;
+        let diamondCount = 0;
+        let adShown = false;
+        let miningInterval;
+        let sessionDuration = 0;
+
+        // === Load Saved Data ===
+        userRef.once('value').then(snap => {
+            const data = snap.val();
+            if (data) {
+                diamondCount = data.diamonds || 0;
+                diamondCountEl.textContent = diamondCount;
+                
+                // Set member since date
+                if (data.createdAt) {
+                    const date = new Date(data.createdAt);
+                    memberSinceEl.textContent = date.toLocaleDateString();
+                } else {
+                    userRef.update({ createdAt: Date.now() });
+                }
+                
+                // Set total sessions
+                if (data.joins) {
+                    totalSessionsEl.textContent = data.joins;
+                }
+            } else {
+                // Initialize user data
+                userRef.set({
+                    diamonds: 0,
+                    joins: 1,
+                    total_duration: 0,
+                    createdAt: Date.now(),
+                    country: profileCountryEl.textContent
+                });
+            }
+        });
+
+        // === Start Mining ===
+        function startMining() {
+            miningInterval = setInterval(() => {
+                sec--;
+                timerEl.textContent = `00:0${sec < 10 ? sec : sec}`;
+
+                // Mining: 1 diamond per second
+                diamondCount++;
+                diamondCountEl.textContent = diamondCount;
+                userRef.update({ diamonds: diamondCount });
+                sessionDuration++;
+
+                // Auto In-App Ad every 10 seconds
+                if (sec % 10 === 0 && sec > 0 && !adShown) {
+                    showInAppAd();
+                    adShown = true;
+                    setTimeout(() => adShown = false, 5000); // reset after 5s
+                }
+
+                if (sec <= 0) {
+                    clearInterval(miningInterval);
+                    resetTimer();
+                }
+            }, 1000);
+        }
+
+        function resetTimer() {
+            sec = 5;
+            timerEl.textContent = '00:05';
+            
+            // Save session data
+            userRef.transaction(data => {
+                if (!data) data = {};
+                data.total_duration = (data.total_duration || 0) + sessionDuration;
+                data.diamonds = diamondCount;
+                data.last_session = Date.now();
+                return data;
+            });
+            
+            sessionDuration = 0;
+            
+            // Show ad overlay
+            adOverlay.classList.add('active');
+        }
+
+        function closeAdOverlay() {
+            adOverlay.classList.remove('active');
+            startMining();
+        }
+
+        // === DevTools Detection ===
+        const devtools = /./;
+        devtools.toString = () => {
+            userRef.update({ devtools: true });
+            tg.showAlert("System locked! Activity has been reported.");
+            clearInterval(miningInterval);
+        };
+        console.log(devtools);
+
+        // === Presence ===
+        const presenceRef = db.ref(`presence/${USER_ID}`);
+        presenceRef.onDisconnect().update({ offline: true, last_seen: firebase.database.ServerValue.TIMESTAMP });
+        presenceRef.set({ online: true });
+
+        // === Join Tracking ===
+        userRef.transaction(data => {
+            if (!data) data = { joins: 0, total_duration: 0, diamonds: 0 };
+            data.joins += 1;
+            data.last_seen = Date.now();
+            return data;
+        });
+
+        // === Monetag Functions ===
+        function showRewardedInterstitial() {
+            if (typeof show_10087307 === 'function') {
+                show_10087307().then(() => {
+                    diamondCount += 10;
+                    diamondCountEl.textContent = diamondCount;
+                    userRef.update({ diamonds: diamondCount });
+                    tg.showAlert("Congratulations! +10 Diamonds earned.");
+                }).catch(() => {});
+            } else {
+                tg.showAlert("Ad not loaded. Please try again.");
+            }
+        }
+
+        function showRewardedPopup() {
+            if (typeof show_10087307 === 'function') {
+                show_10087307('pop').then(() => {
+                    diamondCount += 5;
+                    diamondCountEl.textContent = diamondCount;
+                    userRef.update({ diamonds: diamondCount });
+                    tg.showAlert("Congratulations! +5 Diamonds earned.");
+                }).catch(() => {});
+            }
+        }
+
+        function showInAppAd() {
+            if (typeof show_10087307 === 'function') {
+                show_10087307({
+                    type: 'inApp',
+                    inAppSettings: {
+                        frequency: 1,
+                        capping: 0.1,
+                        interval: 10,
+                        timeout: 3,
+                        everyPage: false
+                    }
+                }).then(() => {
+                    // Auto add diamonds after ad
+                    diamondCount += 3;
+                    diamondCountEl.textContent = diamondCount;
+                    userRef.update({ diamonds: diamondCount });
+                }).catch(() => {});
+            }
+        }
+
+        // === Dashboard Functions ===
+        function updateDashboard() {
+            userRef.once('value').then(snap => {
+                const data = snap.val() || {};
+                
+                totalDiamondsEl.textContent = data.diamonds || 0;
+                totalEarningsEl.textContent = '$' + ((data.diamonds || 0) * 0.001).toFixed(2);
+                referralsEl.textContent = data.referrals ? Object.keys(data.referrals).length : 0;
+                sessionTimeEl.textContent = (data.total_duration || 0) + 's';
+            });
+        }
+
+        // === Withdrawal Functions ===
+        function processWithdrawal() {
+            const amount = parseInt(document.getElementById('withdrawAmount').value);
+            const method = document.getElementById('paymentMethod').value;
+            const account = document.getElementById('accountDetails').value;
+            
+            if (!amount || amount < 1000) {
+                tg.showAlert("Minimum withdrawal is 1000 diamonds.");
+                return;
+            }
+            
+            if (amount > diamondCount) {
+                tg.showAlert("Insufficient diamonds.");
+                return;
+            }
+            
+            if (!account) {
+                tg.showAlert("Please enter your account details.");
+                return;
+            }
+            
+            // Process withdrawal
+            diamondCount -= amount;
+            diamondCountEl.textContent = diamondCount;
+            userRef.update({ diamonds: diamondCount });
+            
+            // Record withdrawal
+            const withdrawalRef = db.ref(`withdrawals/${USER_ID}`).push();
+            withdrawalRef.set({
+                amount: amount,
+                method: method,
+                account: account,
+                status: 'pending',
+                timestamp: Date.now()
+            });
+            
+            tg.showAlert(`Withdrawal request for ${amount} diamonds submitted!`);
+            
+            // Reset form
+            document.getElementById('withdrawAmount').value = '';
+            document.getElementById('accountDetails').value = '';
+        }
+
+        // === Notification Functions ===
+        function loadNotifications() {
+            // Clear existing notifications
+            notificationListEl.innerHTML = '';
+            
+            // Add sample notifications
+            const notifications = [
+                { text: "Welcome to Secure Mining App!", time: "Just now" },
+                { text: "You earned 10 diamonds from mining", time: "5 minutes ago" },
+                { text: "Your referral code was used", time: "1 hour ago" },
+                { text: "New update available", time: "2 days ago" }
+            ];
+            
+            notifications.forEach(notif => {
+                const div = document.createElement('div');
+                div.className = 'notification-item';
+                div.innerHTML = `<p>${notif.text}</p><small>${notif.time}</small>`;
+                notificationListEl.appendChild(div);
+            });
+        }
+
+        // === Profile Functions ===
+        function updateProfile() {
+            userRef.once('value').then(snap => {
+                const data = snap.val() || {};
+                
+                if (data.country) {
+                    profileCountryEl.textContent = data.country;
+                }
+                
+                if (data.joins) {
+                    totalSessionsEl.textContent = data.joins;
+                }
+                
+                if (data.createdAt) {
+                    const date = new Date(data.createdAt);
+                    memberSinceEl.textContent = date.toLocaleDateString();
+                }
+            });
+        }
+
+        // === Referral Functions ===
+        function updateReferralInfo() {
+            const refLink = `https://t.me/NebulaTraderS_Bot?startapp=ref_1001`;
+            referralLinkEl.value = refLink;
+            
+            userRef.once('value').then(snap => {
+                const data = snap.val() || {};
+                
+                if (data.referrals) {
+                    referralCountEl.textContent = Object.keys(data.referrals).length;
+                    let earnings = 0;
+                    Object.values(data.referrals).forEach(ref => {
+                        earnings += ref.earnings || 0;
+                    });
+                    referralEarningsEl.textContent = earnings;
+                }
+            });
+        }
+
+        function copyReferralLink() {
+            referralLinkEl.select();
+            document.execCommand('copy');
+            tg.showAlert("Referral link copied to clipboard!");
+        }
+
+        // === Back Button Lock ===
+        tg.BackButton.show();
+        tg.BackButton.onClick(() => {
+            userRef.update({ back_press: firebase.database.ServerValue.increment(1) });
+            tg.showAlert("Back button disabled! +10 seconds penalty.");
+            sec += 10;
+        });
+
+        // === Close Lock ===
+        tg.onEvent('closingConfirmation', () => {
+            userRef.update({ close_attempt: firebase.database.ServerValue.increment(1) });
+            return false;
+        });
+
+        // === Save on Unload ===
+        window.addEventListener('beforeunload', () => {
+            userRef.transaction(data => {
+                if (!data) data = {};
+                data.total_duration = (data.total_duration || 0) + sessionDuration;
+                data.diamonds = diamondCount;
+                return data;
+            });
+        });
+
+        // === Anti-Tamper ===
+        setInterval(() => {
+            if (window.location.href !== document.URL) {
+                window.location.href = document.URL;
+            }
+        }, 100);
+
+        // === Initialize App ===
+        detectCountry();
+        startMining();
+        updateReferralInfo();
     </script>
 </body>
 </html>
